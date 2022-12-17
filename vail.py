@@ -32,11 +32,14 @@ class SnowStakeImage:
                     'right': ((self.epos_x, self.pos_y + self.height * n),
                               (self.epos_x + self.width, self.pos_y + self.height * (n + 1)))}
 
-    def __init__(self, im, rotation=cfg['rotation']):
+    def __init__(self, im, rotation=cfg['rotation'],
+                 y_adjust=cfg['box']['y_adjust'],
+                 x_adjust=cfg['box']['x_adjust']):
         self.im = np.array(im)
         self.im = cv2.resize(self.im, None, fx=5, fy=5)
         self.im = self.rotate(rotation)
-        self.box = self.Box()
+        self.inches = 0
+        self.box = self.Box(y_adjust=y_adjust, x_adjust=x_adjust)
         self.boxes = {}
         for i in range(0, 19):  # 0-18 inclusive
             self.boxes[str(18 - i)] = self.box.create_box(i)
@@ -69,18 +72,31 @@ class SnowStakeImage:
                 if int(i) < 6:
                     mask = cv2.inRange(hsv, lower_pink, upper_pink)
                     if np.count_nonzero(mask) > 1000:
+                        self.inches = i
                         return i
 
                 # Check count of im blue pixels
                 elif int(i) >= 6:
                     mask = cv2.inRange(hsv, lower_blue, upper_blue)
                     if np.count_nonzero(mask) >= 10:
+                        self.inches = i
                         return i
 
     def draw_boxes(self):
         for i in self.boxes:
             for side in ['left', 'right']:
                 cv2.rectangle(self.im, self.boxes[i][side][0], self.boxes[i][side][1], (0, 255, 0), 5)
+
+    def draw_snowline(self):
+        box = self.boxes[str(self.inches)]
+        spos_x = box['left'][0][0]
+        epos_x = spos_x - self.box.width * 2
+        spos_y = box['left'][0][1] + self.box.height
+        epos_y = spos_y - 5
+        cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
+        self.im = cv2.putText(self.im, f'{self.inches}"', org=(epos_x, epos_y - 10),
+                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=4,
+                              color=(0, 0, 0), thickness=8, lineType=cv2.LINE_AA)
 
     def show(self):
         Image.fromarray(self.im).show()
@@ -125,8 +141,9 @@ def run_vail():
     #                    x_adjust = -25, y_adjust = 5, rotation = -0.5)
 
     inches = s.detect_snow()
-    print(f'{datetime.now()} Inches: {inches}')
-    s.draw_boxes()
+    # print(f'{datetime.now()} Inches: {inches}')
+    # s.draw_boxes()
+    s.draw_snowline()
     s.show()
 
 
