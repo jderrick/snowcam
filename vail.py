@@ -98,14 +98,39 @@ class SnowStakeImage:
                               fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=4,
                               color=(0, 0, 0), thickness=8, lineType=cv2.LINE_AA)
 
+    def attach_text(self):
+        y_pos = 300
+        x_pos = 2400
+        self.im = cv2.putText(self.im, 'VAIL', org=(x_pos, y_pos),
+                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
+                              color=(0, 0, 0), thickness=20, lineType=cv2.LINE_AA)
+        self.im = cv2.putText(self.im, 'VAIL', org=(x_pos, y_pos),
+                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
+                              color=(255, 255, 255), thickness=10, lineType=cv2.LINE_AA)
+        y_pos = y_pos + 300
+        self.im = cv2.putText(self.im, f'{self.inches}"', org=(x_pos, y_pos),
+                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
+                              color=(0, 0, 0), thickness=20, lineType=cv2.LINE_AA)
+        self.im = cv2.putText(self.im, f'{self.inches}"', org=(x_pos, y_pos),
+                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
+                              color=(255, 255, 255), thickness=10, lineType=cv2.LINE_AA)
+
+
+    def resize_crop(self):
+        height, width, _ = self.im.shape
+        self.im = cv2.resize(self.im, None, fx=1.01, fy=1.01)
+        new_height, new_width, _ = self.im.shape
+        y_offset = int((new_height - height) / 2)
+        x_offset = int((new_width - width) / 2)
+        self.im = self.im[y_offset:y_offset + height, x_offset:x_offset + width]
+
     def show(self):
         Image.fromarray(self.im).show()
 
 
-
 def retrieve_vail_image():
-    #Vail url requires the year, month, day, hour, and rounded minute
-    #https://terra.timecam.tv/express/mediablock/timestreams/vailresort/vail-official-snow-stake~640/hour/2022_12_14_13/vail-official-snow-stake~640_2022_12_14_13_15_00.jpg
+    # Vail url requires the year, month, day, hour, and rounded minute
+    # https://terra.timecam.tv/express/mediablock/timestreams/vailresort/vail-official-snow-stake~640/hour/2022_12_14_13/vail-official-snow-stake~640_2022_12_14_13_15_00.jpg
     now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     # Round down to nearest 5 minutes and subtract another 5 minutes for upload cushion
     prev15 = now - timedelta(minutes=now.minute % 5) - timedelta(minutes=5)
@@ -121,11 +146,6 @@ def retrieve_vail_image():
         r.raw.decode_content = True
         return Image.open(r.raw)
     raise requests.RequestException
-
-
-def create_snow_stake_image(im):
-    s = SnowStakeImage(im)
-    return s
 
 
 def run_vail():
@@ -144,7 +164,15 @@ def run_vail():
     # print(f'{datetime.now()} Inches: {inches}')
     # s.draw_boxes()
     s.draw_snowline()
-    s.show()
+    s.resize_crop()
+    # s.show()
+    return s
+
+
+def get_vail_image():
+    s = run_vail()
+    s.attach_text()
+    return s.im
 
 
 if __name__ == '__main__':

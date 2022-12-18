@@ -1,16 +1,18 @@
 {
-  "vail": {
-      "url": "https://terra.timecam.tv/express/mediablock/timestreams/vailresort/vail-official-snow-stake~640/hour/##HOUR##/vail-official-snow-stake~640_##MINUTE##_00_00.jpg",
-      "_comment":  "Based on upscaled 5x 640x480 reference image 'vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg'",
-      "rotation": -0.2,
-      "box": {
-        "height": 97,
-        "width": 175,
-        "x_adjust": 10,
-        "y_adjust": 30,
-        "pos_y": 450,
-        "spos_x": 1553,
-        "epos_x": 1788
-      }
-  }
+    "vail": {
+        "latitude": "39.64",
+        "longitude": "-106.37",
+        "url": "https://terra.timecam.tv/express/mediablock/timestreams/vailresort/vail-official-snow-stake~640/hour/##HOUR##/vail-official-snow-stake~640_##MINUTE##_00_00.jpg",
+        "_comment":  "Based on upscaled 5x 640x480 reference image 'vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg'",
+        "rotation": -0.2,
+        "box": {
+          "height": 97,
+          "width": 175,
+          "x_adjust": 10,
+          "y_adjust": 30,
+          "pos_y": 450,
+          "spos_x": 1553,
+          "epos_x": 1788
+        }
+    }
 }
