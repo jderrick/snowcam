@@ -1,15 +1,15 @@
 # Copyright (c) 2022, Jonathan Derrick
 # SPDX-License-Identifier: GPL-3.0-or-later
 import time
+import json
 import requests
 import cv2
 import numpy as np
-import json
 from datetime import datetime, timedelta, timezone
 from PIL import Image
 
 try:
-    cfg = json.load(open('config.json'))['vail']
+    cfg = json.load(open('config.json'))['resorts']['vail']
 except Exception as e:
     print(e)
     exit(1)
@@ -163,8 +163,10 @@ def run_vail():
     #                    x_adjust = -25, y_adjust = 5, rotation = -0.5)
 
     inches = s.detect_snow()
-    # print(f'{datetime.now()} Inches: {inches}')
+
+    # For adjusting camera parameters
     # s.draw_boxes()
+
     s.draw_snowline()
     s.resize_crop()
     # s.show()

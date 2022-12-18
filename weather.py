@@ -1,14 +1,13 @@
 # Copyright (c) 2022, Jonathan Derrick
 # SPDX-License-Identifier: GPL-3.0-or-later
-import cv2
+import time
 import json
 import requests
+import cv2
 import numpy as np
 import pandas as pd
-import time
 from PIL import Image
 from datetime import datetime, timedelta
-
 
 try:
     cfg = json.load(open('config.json'))
@@ -19,8 +18,8 @@ except Exception as e:
 
 class Weather:
     def __init__(self, city):
-        self.latitude = cfg[city]['latitude']
-        self.longitude = cfg[city]['longitude']
+        self.latitude = cfg['resorts'][city]['latitude']
+        self.longitude = cfg['resorts'][city]['longitude']
         self.weather = None
         self.hourly = None
         self.time_offset = int((time.timezone if (time.localtime().tm_isdst == 0) else time.altzone) / 60 / 60)
