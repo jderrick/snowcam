@@ -61,7 +61,7 @@ class Weather:
 
         for i in range(0, 4):
             pos_x = 60
-            pos_y = 60
+            pos_y = 70
             clock = datetime.fromisoformat(self.hourly['time'][i]) - timedelta(hours=self.time_offset)
             clock = clock.strftime('%H:%M')
             self.im = text.add_text(self.im, xy=(pos_x, pos_y + i * 600), text=clock, align='left', anchor='lt',
@@ -70,7 +70,7 @@ class Weather:
 
             temperature_c = int(self.hourly['temperature_2m'][i])
             temperature_f = int((temperature_c * 9 / 5) + 32)
-            self.im = text.add_text(self.im, xy=(pos_x, pos_y + 200 + i * 600),
+            self.im = text.add_text(self.im, xy=(pos_x, pos_y + 220 + i * 600),
                                     text=f'{temperature_f}F/{temperature_c}C',
                                     align='left', anchor='lt',
                                     fill='black', stroke_fill='black', stroke_width=2,
@@ -79,7 +79,7 @@ class Weather:
             windspeed_k = int(self.hourly['windspeed_10m'][i])
             windspeed_m = int(windspeed_k * 0.6214)
             # winddirection = self.winddirection(self.hourly['winddirection_10m'][i])
-            self.im = text.add_text(self.im, xy=(pos_x, pos_y + 350 + i * 600),
+            self.im = text.add_text(self.im, xy=(pos_x, pos_y + 370 + i * 600),
                                     text=f'{windspeed_m}MPH/{windspeed_k}KPH', align='left', anchor='lt',
                                     fill='black', stroke_fill='black', stroke_width=2,
                                     font='LiberationSerif-Regular.ttf', font_size=110)
