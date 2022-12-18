@@ -6,6 +6,7 @@ import json
 import requests
 import cv2
 import numpy as np
+from os.path import join
 from datetime import datetime, timedelta, timezone
 from PIL import Image
 
@@ -146,11 +147,11 @@ def run_vail():
     s = SnowStakeImage(retrieve_vail_image())
 
     # No-snow reference image
-    # s = SnowStakeImage(Image.open('vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg'))
+    # s = SnowStakeImage(Image.open(join('vail', 'vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg')))
 
     # 10" snow reference image
-    # s = SnowStakeImage(Image.open('vail-official-snow-stake~640_2022_12_14_13_05_00_00.jpg'),
-    #                    x_adjust = -25, y_adjust = 5, rotation = -0.5)
+    # s = SnowStakeImage(Image.open(join('vail', 'vail-official-snow-stake~640_2022_12_14_13_05_00_00.jpg')),
+    #                    x_adjust=-25, y_adjust=5, rotation=-0.5)
 
     s.detect_snow()
 
