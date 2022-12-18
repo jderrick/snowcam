@@ -1,5 +1,6 @@
 # Copyright (c) 2022, Jonathan Derrick
 # SPDX-License-Identifier: GPL-3.0-or-later
+import text
 import time
 import json
 import requests
@@ -59,27 +60,29 @@ class Weather:
             cv2.rectangle(self.im, (0, y_pos), (self.im_width, y_pos + 10), (0, 0, 0), -1)
 
         for i in range(0, 4):
+            pos_x = 60
+            pos_y = 60
             clock = datetime.fromisoformat(self.hourly['time'][i]) - timedelta(hours=self.time_offset)
             clock = clock.strftime('%H:%M')
+            self.im = text.add_text(self.im, xy=(pos_x, pos_y + i * 600), text=clock, align='left', anchor='lt',
+                                    fill='black', stroke_fill='black', stroke_width=6,
+                                    font='LiberationSerif-Regular.ttf', font_size=240)
 
-            x_pos = 40
             temperature_c = int(self.hourly['temperature_2m'][i])
             temperature_f = int((temperature_c * 9 / 5) + 32)
-            # Resize the whole frame to fit parameter widths
-            if temperature_c <= -10 and temperature_f <= -10:
-                x_pos = 20
-            self.im = cv2.putText(self.im, clock, org=(x_pos, 200 + i * 600),
-                                  fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=6,
-                                  color=(0, 0, 0), thickness=16, lineType=cv2.LINE_AA)
-            self.im = cv2.putText(self.im, f'{temperature_f}F/{temperature_c}C', org=(x_pos, 350 + i * 600),
-                                  fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=4,
-                                  color=(0, 0, 0), thickness=8, lineType=cv2.LINE_AA)
+            self.im = text.add_text(self.im, xy=(pos_x, pos_y + 200 + i * 600),
+                                    text=f'{temperature_f}F/{temperature_c}C',
+                                    align='left', anchor='lt',
+                                    fill='black', stroke_fill='black', stroke_width=2,
+                                    font='LiberationSerif-Regular.ttf', font_size=144)
+
             windspeed_k = int(self.hourly['windspeed_10m'][i])
             windspeed_m = int(windspeed_k * 0.6214)
             # winddirection = self.winddirection(self.hourly['winddirection_10m'][i])
-            self.im = cv2.putText(self.im, f'{windspeed_m}mph/{windspeed_k}kph', org=(x_pos, 500 + i * 600),
-                                  fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=3,
-                                  color=(0, 0, 0), thickness=8, lineType=cv2.LINE_AA)
+            self.im = text.add_text(self.im, xy=(pos_x, pos_y + 350 + i * 600),
+                                    text=f'{windspeed_m}MPH/{windspeed_k}KPH', align='left', anchor='lt',
+                                    fill='black', stroke_fill='black', stroke_width=2,
+                                    font='LiberationSerif-Regular.ttf', font_size=110)
 
     def show(self):
         Image.fromarray(self.im).show()

@@ -1,5 +1,6 @@
 # Copyright (c) 2022, Jonathan Derrick
 # SPDX-License-Identifier: GPL-3.0-or-later
+import text
 import time
 import json
 import requests
@@ -96,27 +97,16 @@ class SnowStakeImage:
         spos_y = box['left'][0][1] + self.box.height
         epos_y = spos_y - 5
         cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
-        self.im = cv2.putText(self.im, f'{self.inches}"', org=(epos_x, epos_y - 10),
-                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=4,
-                              color=(0, 0, 0), thickness=8, lineType=cv2.LINE_AA)
+        self.im = text.add_text(self.im, xy=(epos_x, epos_y - 10), text=f'{self.inches}"', align='left', anchor='ls',
+                                fill='white', stroke_fill='black', stroke_width=8,
+                                font='LiberationSerif-Regular.ttf', font_size=200)
 
-    def attach_text(self):
+    def attach_header_text(self):
         y_pos = 300
-        x_pos = 2400
-        self.im = cv2.putText(self.im, 'VAIL', org=(x_pos, y_pos),
-                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
-                              color=(0, 0, 0), thickness=20, lineType=cv2.LINE_AA)
-        self.im = cv2.putText(self.im, 'VAIL', org=(x_pos, y_pos),
-                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
-                              color=(255, 255, 255), thickness=10, lineType=cv2.LINE_AA)
-        y_pos = y_pos + 300
-        self.im = cv2.putText(self.im, f'{self.inches}"', org=(x_pos, y_pos),
-                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
-                              color=(0, 0, 0), thickness=20, lineType=cv2.LINE_AA)
-        self.im = cv2.putText(self.im, f'{self.inches}"', org=(x_pos, y_pos),
-                              fontFace=cv2.FONT_HERSHEY_COMPLEX, fontScale=10,
-                              color=(255, 255, 255), thickness=10, lineType=cv2.LINE_AA)
-
+        x_pos = 3100
+        self.im = text.add_text(self.im, xy=(x_pos, y_pos), text=f'VAIL\n{self.inches}"', align='right', anchor='rs',
+                                fill='white', stroke_fill='black', stroke_width=8,
+                                font='LiberationSerif-Regular.ttf', font_size=400)
 
     def resize_crop(self):
         height, width, _ = self.im.shape
@@ -162,7 +152,7 @@ def run_vail():
     # s = SnowStakeImage(Image.open('vail-official-snow-stake~640_2022_12_14_13_05_00_00.jpg'),
     #                    x_adjust = -25, y_adjust = 5, rotation = -0.5)
 
-    inches = s.detect_snow()
+    s.detect_snow()
 
     # For adjusting camera parameters
     # s.draw_boxes()
@@ -175,7 +165,7 @@ def run_vail():
 
 def get_vail_image():
     s = run_vail()
-    s.attach_text()
+    s.attach_header_text()
     return s.im
 
 

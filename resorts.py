@@ -1,7 +1,7 @@
 # Copyright (c) 2022, Jonathan Derrick
 # SPDX-License-Identifier: GPL-3.0-or-later
-import json
 import weather
+import json
 import numpy as np
 from PIL import Image
 from vail import vail
