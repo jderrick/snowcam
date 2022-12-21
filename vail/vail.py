@@ -45,8 +45,8 @@ class SnowStakeImage:
         self.inches = 0
         self.box = self.Box(y_adjust=y_adjust, x_adjust=x_adjust)
         self.boxes = {}
-        for i in range(0, 19):  # 0-18 inclusive
-            self.boxes[str(18 - i)] = self.box.create_box(i)
+        for i in range(0, cfg['inches'] + 1):  # 0-18 inclusive
+            self.boxes[str(cfg['inches'] - i)] = self.box.create_box(i)
 
     def rotate(self, rotation=0):
         if rotation == 0:
@@ -164,7 +164,7 @@ def run_vail():
     return s
 
 
-def get_vail_image():
+def get_image():
     s = run_vail()
     s.attach_header_text()
     return s.im

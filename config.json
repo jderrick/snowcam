@@ -1,12 +1,27 @@
 {
     "license": "GPL-3.0-or-later",
     "resorts": {
+        "breckenridge": {
+            "latitude": "39.48",
+            "longitude": "-106.04",
+            "url": "https://terra.timecam.tv/express/mediablock/timestreams/vailresort/breckenridge-snowstake-ca~640/hour/##HOUR##/breckenridge-snowstake-ca~640_##MINUTE##_00_00.jpg",
+            "_comment":  "",
+            "rotation": 0,
+            "inches": 24,
+            "box": {
+                "height": 70,
+                "width": 140,
+                "xpos": 450,
+                "ypos": 450
+            }
+        },
         "vail": {
             "latitude": "39.64",
             "longitude": "-106.37",
             "url": "https://terra.timecam.tv/express/mediablock/timestreams/vailresort/vail-official-snow-stake~640/hour/##HOUR##/vail-official-snow-stake~640_##MINUTE##_00_00.jpg",
             "_comment":  "Based on upscaled 5x 640x480 reference image 'vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg'",
             "rotation": -0.2,
+            "inches": 18,
             "box": {
                 "height": 97,
                 "width": 175,

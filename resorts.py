@@ -5,6 +5,7 @@ import json
 import numpy as np
 from PIL import Image
 from vail import vail
+from breckenridge import breckenridge
 
 
 cfg = None
@@ -20,8 +21,11 @@ resort_index = 0
 
 
 def get_snow_image(city):
-    if city == 'vail':
-        return vail.get_vail_image()
+    try:
+        return eval(city).get_image()
+    except Exception as e:
+        print(e)
+        pass
     return None
 
 
