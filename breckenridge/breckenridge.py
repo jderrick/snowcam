@@ -48,28 +48,23 @@ class SnowStakeImage:
         matrix = cv2.getRotationMatrix2D((cols / 2, rows / 2), rotation, 1)
         return cv2.warpAffine(im, matrix, (cols, rows))
 
-    # def detect_snow(self):
-    #     # Below 6", need to check snow stake consistency
-    #     # Snow adds color consistency creating a solid red hsv layer
-    #     # Non-snow images have inconsistencies creating red and pink sections
-    #     # Pinkish should be lower-bounded to about 140, but for some reason it needs 100
-    #     lower_pink = np.array([100, 0, 0])
-    #     upper_pink = np.array([180, 255, 255])
-    #     for i in range(len(self.boxes)):
-    #         (spos, epos) = (self.boxes[str(i)][0], self.boxes[str(i)][1])
-    #         box = self.im[spos[1]:epos[1], spos[0]:epos[0]]
-    #         hsv = cv2.cvtColor(box, cv2.COLOR_RGB2HSV)
-    #         mask = cv2.inRange(hsv, lower_pink, upper_pink)
-    #         if np.count_nonzero(mask) > 1000:
-    #             self.inches = i
-    #             return i
-
-    @staticmethod
-    def reject_outliers(data, m=6.):
-        d = np.abs(data - np.median(data))
-        mdev = np.median(d)
-        s = d / (mdev if mdev else 1.)
-        return data[s < m].tolist()
+    def detect_snow(self):
+        # Snow adds color consistency creating a solid blue hsv layer
+        # Non-snow images have inch markers in green in the hsv layer
+        lower_green = np.array([45, 0, 0])
+        upper_green = np.array([180, 255, 255])
+        for i in range(len(self.boxes)):
+            (spos, epos) = (self.boxes[str(i)][0], self.boxes[str(i)][1])
+            box = self.im[spos[1]:epos[1], spos[0]:epos[0]]
+            mask = cv2.inRange(box, lower_green, upper_green)
+            # Image.fromarray(mask).show()
+            # time.sleep(1)
+            # Image.fromarray(box).show()
+            # time.sleep(1)
+            # print(i, np.count_nonzero(mask))
+            if np.count_nonzero(mask) > 100:
+                self.inches = i
+                return i
 
     def auto_adjust(self):
         im = cv2.cvtColor(self.im, cv2.COLOR_RGB2HLS)
@@ -100,7 +95,7 @@ class SnowStakeImage:
         for i in range(0, len(dist) - 1):
             oa = (dist[i + 1][1] - dist[i][1]) / (dist[i + 1][0] - dist[i][0])
             rotations.append(math.atan(oa) * 180 / math.pi)
-        self.rotation = -mean(self.reject_outliers(np.array(rotations)))
+        self.rotation = -mean(lib.reject_outliers(rotations))
         self.im = self.rotate(self.im, self.rotation)
 
         # Now determine x/y adjust
@@ -114,31 +109,46 @@ class SnowStakeImage:
         crop_im = im[ypos:ypos + height, xpos:xpos + width]
         crop_im = cv2.dilate(crop_im, kernel, iterations=4)
 
-        # Need to add a small buffer to account for any gaps on the left hand side after rotation
+        # 2-pass search
+        # 1st pass, find top of stake (or snow)
+        x = int(width / 2)
         for y in range(0, height):
-            if crop_im[y][int(width / 2)] == 255:
-                self.box_ypos = ypos + y + 5
+            if crop_im[y][x] == 255:
+                self.box_ypos = ypos + y
                 break
-        crop_im = crop_im[self.box_ypos:, :]
-        for x in range(0, width):
-            if crop_im[0][x] == 255:
-                self.box_xpos = xpos + x
+
+        # 2nd pass, find left side of stake
+        height, width = crop_im.shape
+        stride = int((height - y) / 8) - 1
+        xvals = []
+        for y in range(y, height, stride):
+            for x in range(0, width):
+                if crop_im[y][x] == 255:
+                    xvals.append(x)
+                    break
+        x = int(mean(lib.reject_outliers(xvals)))
+        self.box_xpos = x + xpos
+
+        # Find top of stake from left
+        for y in range(0, height):
+            if crop_im[y][x + 5] == 255:
+                self.box_ypos = ypos + y
                 break
 
     def draw_boxes(self):
         for i in self.boxes:
             cv2.rectangle(self.im, self.boxes[i][0], self.boxes[i][1], (0, 255, 0), 5)
 
-    # def draw_snowline(self):
-    #     box = self.boxes[str(self.inches)]
-    #     spos_x = box[0][0]
-    #     epos_x = spos_x - self.box_width * 2
-    #     spos_y = box[0][1] + self.box_height
-    #     epos_y = spos_y - 5
-    #     cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
-    #     self.im = text.add_text(self.im, xy=(epos_x, epos_y - 10), text=f'{self.inches}"', align='left', anchor='ls',
-    #                             fill='white', stroke_fill='black', stroke_width=8,
-    #                             font='LiberationSerif-Regular.ttf', font_size=200)
+    def draw_snowline(self):
+        box = self.boxes[str(self.inches)]
+        spos_x = box[0][0]
+        epos_x = spos_x - self.box_width * 2
+        spos_y = box[0][1] + self.box_height
+        epos_y = spos_y - 5
+        cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
+        self.im = text.add_text(self.im, xy=(epos_x, epos_y - 10), text=f'{self.inches}"', align='left', anchor='ls',
+                                fill='white', stroke_fill='black', stroke_width=8,
+                                font='LiberationSerif-Regular.ttf', font_size=200)
 
     def attach_header_text(self):
         ypos = 20
@@ -201,14 +211,17 @@ def run_breckenridge():
     # Ideal for tilt correction testing
     # s = SnowStakeImage(Image.open(join('breckenridge', 'breckenridge-snowstake-ca~640_2022_12_19_04_50_00_00.jpg')))
 
+    # 3-inches snow reference image
+    # s = SnowStakeImage(Image.open(join('breckenridge', 'breckenridge-snowstake-ca~640_2022_12_21_12_05_00_00.jpg')))
+
     s.auto_adjust()
     s.create_boxes()
-    # s.detect_snow()
+    s.detect_snow()
 
     # For adjusting camera parameters
     # s.draw_boxes()
 
-    # s.draw_snowline()
+    s.draw_snowline()
     s.resize_and_crop()
     # s.show()
     return s
