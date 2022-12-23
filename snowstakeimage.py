@@ -26,6 +26,7 @@ class SnowStakeImage:
         self.im = cv2.resize(self.im, None, fx=5, fy=5)
         self.rotation = 0
         self.inches = 0
+        self.time = datetime.now()
         self.box_height = self.cfg['box']['height']
         self.box_width = self.cfg['box']['width']
         self.box_ypos = 0
@@ -38,19 +39,19 @@ class SnowStakeImage:
 
         if url_type == 'timecam':
             now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-            # Round down to nearest 5 minutes and subtract another 5 minutes for upload cushion
-            prev15 = now - timedelta(minutes=now.minute % 5) - timedelta(minutes=5)
+            # Round down to nearest 5 minutes and subtract another 10 minutes for upload cushion
+            self.time = now - timedelta(minutes=now.minute % 5) - timedelta(minutes=10)
 
             url = self.cfg['url']
-            hour = prev15.strftime('%Y_%m_%d_%H')
-            minute = hour + prev15.strftime('_%M')
+            hour = self.time.strftime('%Y_%m_%d_%H')
+            minute = hour + self.time.strftime('_%M')
             url = url.replace('##HOUR##', hour)
             url = url.replace('##MINUTE##', minute)
             r = requests.get(url, stream=True)
             if r.status_code == 200:
                 r.raw.decode_content = True
                 return Image.open(r.raw)
-            raise requests.RequestException
+            raise requests.RequestException(f'Status: {r.status_code}')
         else:
             raise ValueError(f'unsupported resort {self.resort}')
 
@@ -80,12 +81,18 @@ class SnowStakeImage:
         epos_y = spos_y - 5
         cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
         self.im = lib.add_text(self.im, xy=(epos_x, epos_y - 10), text=f'{self.inches}"', align='left', anchor='ls',
-                               fill='white', stroke_fill='black', stroke_width=8,
+                               fill='white', stroke_fill='black', stroke_width=10,
                                font='LiberationSerif-Regular.ttf', font_size=200)
 
-    def attach_header_text(self, ypos, xpos, text, align, anchor, font_size):
+    def attach_datetime_text(self, ypos, xpos, align, anchor, font_size):
+        self.im = lib.add_text(self.im, xy=(xpos, ypos), text=self.time.strftime('%b %d %Y\n%-I:%M%p'),
+                               align=align, anchor=anchor,
+                               fill='white', stroke_fill='black', stroke_width=10,
+                               font='LiberationSerif-Regular.ttf', font_size=font_size)
+
+    def attach_inches_text(self, ypos, xpos, text, align, anchor, font_size):
         self.im = lib.add_text(self.im, xy=(xpos, ypos), text=text, align=align, anchor=anchor,
-                               fill='white', stroke_fill='black', stroke_width=8,
+                               fill='white', stroke_fill='black', stroke_width=10,
                                font='LiberationSerif-Regular.ttf', font_size=font_size)
 
     # Iteratively resize until the corners are non-black

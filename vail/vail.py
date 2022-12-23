@@ -115,7 +115,8 @@ def run_vail():
     # s.draw_boxes()
     s.draw_snowline()
     s.resize_and_crop()
-    s.attach_header_text(300, 3100, f'VAIL\n{s.inches}"', 'right', 'rs', 400)
+    s.attach_datetime_text(10, 50, 'left', 'la', 200)
+    s.attach_inches_text(320, 3100, f'VAIL\n{s.inches}"', 'right', 'rs', 400)
     return s
 
 

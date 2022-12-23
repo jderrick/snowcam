@@ -125,7 +125,8 @@ def run_breckenridge():
     # s.draw_boxes()
     s.draw_snowline()
     s.resize_and_crop()
-    s.attach_header_text(20, s.im.shape[1] - 100, f'{s.inches}"','right', 'rt', 500)
+    s.attach_datetime_text(10, 50, 'left', 'la', 200)
+    s.attach_inches_text(380, s.im.shape[1] - 100, f'{s.inches}"', 'right', 'rs', 500)
     return s
 
 
