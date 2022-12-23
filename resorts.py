@@ -29,8 +29,7 @@ def get_snow_image(city):
 
 def get_next_resort_image():
     global resort_index
-    # resort = resorts[resort_index]
-    resort = 'vail'
+    resort = resorts[resort_index]
     snow_im = get_snow_image(resort)
     weather_im = weather.get_weather_image(resort)
     combined_im = lib.combine_images(left=weather_im, right=snow_im)

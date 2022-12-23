@@ -78,7 +78,6 @@ class SnowStakeImage:
         epos_x = spos_x - 300
         spos_y = box[0][1] + self.box_height
         epos_y = spos_y - 5
-        cv2.circle(self.im, (epos_y, epos_x), 5, (255, 0, 0), -1)
         cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
         self.im = lib.add_text(self.im, xy=(epos_x, epos_y - 10), text=f'{self.inches}"', align='left', anchor='ls',
                                fill='white', stroke_fill='black', stroke_width=8,
