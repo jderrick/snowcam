@@ -27,7 +27,7 @@ class Vail(SnowStakeImage):
         crop_im = cv2.cvtColor(crop_im, cv2.COLOR_RGB2GRAY)
         th, im_crop = cv2.threshold(crop_im, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
-        stride = int(height / 8) - 1
+        stride = int(height / 12) - 1
         dist = []
         for y in range(0, height, stride):
             for x in range(0, width):

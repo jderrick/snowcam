@@ -29,9 +29,10 @@ class Breckenridge(SnowStakeImage):
         height = 500
         width = 500
         crop_im = im[ypos:ypos + height, xpos:xpos + width]
-        crop_im = cv2.dilate(crop_im, kernel, iterations=5)
+        crop_im = cv2.dilate(crop_im, kernel, iterations=4)
+        crop_im = cv2.erode(crop_im, kernel, iterations=8)
 
-        stride = int(height / 8) - 1
+        stride = int(height / 12) - 1
         dist = []
         for y in range(0, height, stride):
             for x in range(0, width):
@@ -44,7 +45,8 @@ class Breckenridge(SnowStakeImage):
         for i in range(0, len(dist) - 1):
             oa = (dist[i + 1][1] - dist[i][1]) / (dist[i + 1][0] - dist[i][0])
             rotations.append(math.atan(oa) * 180 / math.pi)
-        self.rotation = -mean(lib.reject_outliers(rotations))
+        rotations = lib.reject_outliers(rotations)
+        self.rotation = -mean(rotations)
         self.rotate(self.rotation)
 
         # Now determine x/y adjust
