@@ -10,9 +10,7 @@
             "inches": 24,
             "box": {
                 "height": 70,
-                "width": 140,
-                "xpos": 450,
-                "ypos": 450
+                "width": 140
             }
         },
         "vail": {
@@ -24,12 +22,7 @@
             "inches": 18,
             "box": {
                 "height": 97,
-                "width": 175,
-                "x_adjust": 10,
-                "y_adjust": 30,
-                "pos_y": 450,
-                "spos_x": 1553,
-                "epos_x": 1788
+                "width": 600
             }
         }
     }

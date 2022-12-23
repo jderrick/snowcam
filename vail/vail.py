@@ -1,59 +1,67 @@
 # Copyright (c) 2022, Jonathan Derrick
 # SPDX-License-Identifier: GPL-3.0-or-later
-import text
-import time
-import json
-import requests
+import lib
+from snowstakeimage import SnowStakeImage
 import cv2
+import math
+import time
 import numpy as np
 from os.path import join
-from datetime import datetime, timedelta, timezone
 from PIL import Image
-
-try:
-    cfg = json.load(open('config.json'))['resorts']['vail']
-except Exception as e:
-    print(e)
-    exit(1)
+from statistics import mean
 
 
-class SnowStakeImage:
-    class Box:
-        def __init__(self,
-                     y_adjust=cfg['box']['y_adjust'],
-                     x_adjust=cfg['box']['x_adjust']):
-            self.height = cfg['box']['height']
-            self.width = cfg['box']['width']
-            self.y_adjust = y_adjust
-            self.x_adjust = x_adjust
-            self.pos_y = cfg['box']['pos_y'] + self.y_adjust
-            self.spos_x = cfg['box']['spos_x'] + self.x_adjust
-            self.epos_x = cfg['box']['epos_x'] + self.x_adjust
+class Vail(SnowStakeImage):
+    def __init__(self, im):
+        super().__init__(im, 'vail')
 
-        def create_box(self, n):
-            return {'left': ((self.spos_x - self.width, self.pos_y + self.height * n),
-                             (self.spos_x, self.pos_y + self.height * (n + 1))),
-                    'right': ((self.epos_x, self.pos_y + self.height * n),
-                              (self.epos_x + self.width, self.pos_y + self.height * (n + 1)))}
+    # Vail has a white image at the top of the snow stake
+    # And most of the rest of the stake is blue
+    def auto_adjust(self):
+        ypos = 200
+        xpos = 1100
+        height = 1000
+        width = 500
 
-    def __init__(self, im, rotation=cfg['rotation'],
-                 y_adjust=cfg['box']['y_adjust'],
-                 x_adjust=cfg['box']['x_adjust']):
-        self.im = np.array(im)
-        self.im = cv2.resize(self.im, None, fx=5, fy=5)
-        self.im = self.rotate(rotation)
-        self.inches = 0
-        self.box = self.Box(y_adjust=y_adjust, x_adjust=x_adjust)
-        self.boxes = {}
-        for i in range(0, cfg['inches'] + 1):  # 0-18 inclusive
-            self.boxes[str(cfg['inches'] - i)] = self.box.create_box(i)
+        crop_im = self.im[ypos:ypos + height, xpos:xpos + width]
+        crop_im = cv2.cvtColor(crop_im, cv2.COLOR_RGB2GRAY)
+        th, im_crop = cv2.threshold(crop_im, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
-    def rotate(self, rotation=0):
-        if rotation == 0:
-            return self.im
-        rows, cols, _ = self.im.shape
-        matrix = cv2.getRotationMatrix2D((cols / 2, rows / 2), rotation, 1)
-        return cv2.warpAffine(self.im, matrix, (cols, rows))
+        stride = int(height / 8) - 1
+        dist = []
+        for y in range(0, height, stride):
+            for x in range(0, width):
+                # This is very clearly Binary thresholded to black-and-white
+                # Why does it still require a grayscale value?
+                if crop_im[y][x] > 100:
+                    dist.append((y, x))
+                    break
+        xval = int(mean(lib.reject_outliers([x[1] for x in dist])))
+        self.box_xpos = xval + xpos + 5
+
+        # Trig: tan N = opposite / adjacent
+        rotations = []
+        for i in range(0, len(dist) - 1):
+            oa = (dist[i + 1][1] - dist[i][1]) / (dist[i + 1][0] - dist[i][0])
+            rotations.append(math.atan(oa) * 180 / math.pi)
+        self.rotation = -mean(lib.reject_outliers(rotations))
+        self.rotate(self.rotation)
+
+        # Now determine x/y adjust
+        ypos = 200
+        xpos = self.box_xpos + 10
+        height = 800
+        width = 500 - xval
+
+        im = cv2.cvtColor(self.im, cv2.COLOR_RGB2HSV)
+        crop_im = im[ypos:ypos + height, xpos:xpos + width]
+        lower_pink = np.array([100, 0, 0])
+        upper_pink = np.array([180, 255, 255])
+        mask = cv2.inRange(crop_im, lower_pink, upper_pink)
+        for y in range(0, height):
+            if mask[y][0] == 255:
+                self.box_ypos = y + ypos
+                break
 
     def detect_snow(self):
         # Below 6", need to check snow stake consistency
@@ -67,106 +75,52 @@ class SnowStakeImage:
         lower_blue = np.array([90, 127, 127])
         upper_blue = np.array([130, 255, 255])
         for i in range(len(self.boxes)):
-            for side in ['left', 'right']:
-                (spos, epos) = (self.boxes[str(i)][side][0], self.boxes[str(i)][side][1])
-                box = self.im[spos[1]:epos[1], spos[0]:epos[0]]
-                hsv = cv2.cvtColor(box, cv2.COLOR_RGB2HSV)
+            (spos, epos) = (self.boxes[str(i)][0], self.boxes[str(i)][1])
+            box = self.im[spos[1]:epos[1], spos[0]:epos[0]]
+            hsv = cv2.cvtColor(box, cv2.COLOR_RGB2HSV)
 
-                # Below 6", check count of hsv pink pixels
-                if int(i) < 6:
-                    mask = cv2.inRange(hsv, lower_pink, upper_pink)
-                    if np.count_nonzero(mask) > 1000:
-                        self.inches = i
-                        return i
+            # Below 6", check count of hsv pink pixels
+            if int(i) < 6:
+                mask = cv2.inRange(hsv, lower_pink, upper_pink)
+                if np.count_nonzero(mask) > 1000:
+                    self.inches = i
+                    return i
 
-                # Check count of im blue pixels
-                elif int(i) >= 6:
-                    mask = cv2.inRange(hsv, lower_blue, upper_blue)
-                    if np.count_nonzero(mask) >= 10:
-                        self.inches = i
-                        return i
+            # 6" and above, check count of im blue pixels
+            elif int(i) >= 6:
+                mask = cv2.inRange(hsv, lower_blue, upper_blue)
+                if np.count_nonzero(mask) >= 10:
+                    self.inches = i
+                    return i
 
     def draw_boxes(self):
         for i in self.boxes:
-            for side in ['left', 'right']:
-                cv2.rectangle(self.im, self.boxes[i][side][0], self.boxes[i][side][1], (0, 255, 0), 5)
-
-    def draw_snowline(self):
-        box = self.boxes[str(self.inches)]
-        spos_x = box['left'][0][0]
-        epos_x = spos_x - self.box.width * 2
-        spos_y = box['left'][0][1] + self.box.height
-        epos_y = spos_y - 5
-        cv2.rectangle(self.im, (spos_x, spos_y), (epos_x, epos_y), (0, 0, 0), -1)
-        self.im = text.add_text(self.im, xy=(epos_x, epos_y - 10), text=f'{self.inches}"', align='left', anchor='ls',
-                                fill='white', stroke_fill='black', stroke_width=8,
-                                font='LiberationSerif-Regular.ttf', font_size=200)
-
-    def attach_header_text(self):
-        y_pos = 300
-        x_pos = 3100
-        self.im = text.add_text(self.im, xy=(x_pos, y_pos), text=f'VAIL\n{self.inches}"', align='right', anchor='rs',
-                                fill='white', stroke_fill='black', stroke_width=8,
-                                font='LiberationSerif-Regular.ttf', font_size=400)
-
-    def resize_crop(self):
-        height, width, _ = self.im.shape
-        self.im = cv2.resize(self.im, None, fx=1.01, fy=1.01)
-        new_height, new_width, _ = self.im.shape
-        y_offset = int((new_height - height) / 2)
-        x_offset = int((new_width - width) / 2)
-        self.im = self.im[y_offset:y_offset + height, x_offset:x_offset + width]
-
-    def show(self):
-        Image.fromarray(self.im).show()
-
-
-def retrieve_vail_image():
-    # Vail url requires the year, month, day, hour, and rounded minute
-    # https://terra.timecam.tv/express/mediablock/timestreams/vailresort/vail-official-snow-stake~640/hour/2022_12_14_13/vail-official-snow-stake~640_2022_12_14_13_15_00.jpg
-    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-    # Round down to nearest 5 minutes and subtract another 5 minutes for upload cushion
-    prev15 = now - timedelta(minutes=now.minute % 5) - timedelta(minutes=5)
-
-    url = cfg['url']
-    hour = prev15.strftime('%Y_%m_%d_%H')
-    minute = hour + prev15.strftime('_%M')
-    url = url.replace('##HOUR##', hour)
-    url = url.replace('##MINUTE##', minute)
-
-    r = requests.get(url, stream=True)
-    if r.status_code == 200:
-        r.raw.decode_content = True
-        return Image.open(r.raw)
-    raise requests.RequestException
+            cv2.rectangle(self.im, self.boxes[i][0], self.boxes[i][1], (0, 255, 0), 5)
 
 
 def run_vail():
-    # Raw Vail image
-    # Parameters change when camera is adjusted
-    s = SnowStakeImage(retrieve_vail_image())
+    im = None
 
     # No-snow reference image
-    # s = SnowStakeImage(Image.open(join('vail', 'vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg')))
+    # im = Image.open(join('vail', 'vail-official-snow-stake~640_2022_12_14_13_10_00_00.jpg'))
 
     # 10" snow reference image
-    # s = SnowStakeImage(Image.open(join('vail', 'vail-official-snow-stake~640_2022_12_14_13_05_00_00.jpg')),
-    #                    x_adjust=-25, y_adjust=5, rotation=-0.5)
+    # im = Image.open(join('vail', 'vail-official-snow-stake~640_2022_12_14_13_05_00_00.jpg'),
+    #                 x_adjust=-25, y_adjust=5, rotation=-0.5)
 
+    s = Vail(im)
+    s.auto_adjust()
+    s.create_boxes()
     s.detect_snow()
-
-    # For adjusting camera parameters
     # s.draw_boxes()
-
     s.draw_snowline()
-    s.resize_crop()
-    # s.show()
+    s.resize_and_crop()
+    s.attach_header_text(300, 3100, f'VAIL\n{s.inches}"', 'right', 'rs', 400)
     return s
 
 
 def get_image():
     s = run_vail()
-    s.attach_header_text()
     return s.im
 
 
@@ -174,5 +128,6 @@ if __name__ == '__main__':
     # Runs every 5 minutes, avoiding drift
     start_time = time.time()
     while True:
-        run_vail()
+        s = run_vail()
+        s.show()
         time.sleep(300 - ((time.time() - start_time) % 300))
